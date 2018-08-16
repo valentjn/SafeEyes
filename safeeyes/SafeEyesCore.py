@@ -82,8 +82,8 @@ class SafeEyesCore(object):
         self.break_interval = config.get('break_interval') * 60   # Convert to seconds
         self.postpone_duration = config.get('postpone_duration') * 60   # Convert to seconds
 
-        self.__init_breaks(BreakType.SHORT_BREAK, config.get('short_breaks'), config.get('no_of_short_breaks_per_long_break'))
-        self.__init_breaks(BreakType.LONG_BREAK, config.get('long_breaks'), config.get('no_of_short_breaks_per_long_break'))
+        self.__init_breaks(config.get('short_breaks'), config.get('long_breaks'), config.get('no_of_short_breaks_per_long_break'))
+        logging.info("Next breaks: {}".format(self.breaks))
         self.break_count = len(self.breaks)
         if self.break_count == 0:
             # No breaks found
@@ -312,30 +312,28 @@ class SafeEyesCore(object):
             # Schedule the break again
             Utility.start_thread(self.__scheduler_job)
 
-    def __init_breaks(self, break_type, break_configs, short_breaks_per_long_break=0):
+    def __init_breaks(self, short_break_configs, long_break_configs, short_breaks_per_long_break=0):
         """
         Fill the self.breaks using short and local breaks.
         """
-        # Defin the default break time
-        default_break_time = self.short_break_duration
+        short_break_index, long_break_index = 0, 0
+        breaks_since_last_long_break = 0
 
-        # Duplicate short breaks to equally distribute the long breaks
-        if break_type is BreakType.LONG_BREAK:
-            if self.breaks:
+        while ((len(self.breaks) == 0) or (short_break_index != 0) or (long_break_index != 0) or
+               (breaks_since_last_long_break != 0)):
+            if breaks_since_last_long_break == short_breaks_per_long_break - 1:
+                break_config = long_break_configs[long_break_index]
+                break_type = BreakType.LONG_BREAK
                 default_break_time = self.long_break_duration
-                required_short_breaks = short_breaks_per_long_break * len(break_configs)
-                no_of_short_breaks = len(self.breaks)
-                short_break_index = 0
-                while no_of_short_breaks < required_short_breaks:
-                    self.breaks.append(self.breaks[short_break_index])
-                    short_break_index += 1
-                    no_of_short_breaks += 1
+                long_break_index = (long_break_index + 1) % len(long_break_configs)
+                breaks_since_last_long_break = 0
             else:
-                # If there are no short breaks, extend the break interval according to long break interval
-                self.break_interval = int(self.break_interval * short_breaks_per_long_break)
+                break_config = short_break_configs[short_break_index]
+                break_type = BreakType.SHORT_BREAK
+                default_break_time = self.short_break_duration
+                short_break_index = (short_break_index + 1) % len(short_break_configs)
+                breaks_since_last_long_break += 1
 
-        iteration = 1
-        for break_config in break_configs:
             name = _(break_config['name'])
             break_time = break_config.get('duration', default_break_time)
             image = break_config.get('image')
@@ -347,10 +345,4 @@ class SafeEyesCore(object):
                 continue
 
             break_obj = Break(break_type, name, break_time, image, plugins)
-            if break_type is BreakType.SHORT_BREAK:
-                self.breaks.append(break_obj)
-            else:
-                # Long break
-                index = iteration * (short_breaks_per_long_break + 1) - 1
-                self.breaks.insert(index, break_obj)
-                iteration += 1
+            self.breaks.append(break_obj)
