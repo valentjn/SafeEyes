@@ -213,6 +213,8 @@ class SafeEyesCore(object):
             self.context['break_type'] = 'short'
 
         # Wait for the pre break warning period
+        logging.info("Break index is %d, next break will be %s", self.next_break_index,
+                     self.context['break_type'])
         logging.info("Waiting for %d minutes until next break", (time_to_wait / 60))
         self.__wait_for(time_to_wait)
 
