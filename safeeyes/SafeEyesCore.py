@@ -191,15 +191,15 @@ class SafeEyesCore(object):
             time_to_wait = self.postpone_duration
             self.context['postponed'] = False
 
-        elif self.paused_time > -1 and self.__is_long_break():
-            # Safe Eyes was paused earlier and next break is long
-            paused_duration = int(current_timestamp - self.paused_time)
-            self.paused_time = -1
-            if paused_duration > self.breaks[self.next_break_index].time:
-                logging.info('Skip next long break due to the pause longer than break duration')
-                # Skip the next long break
-                self.__select_next_break()
-       
+        #elif self.paused_time > -1 and self.__is_long_break():
+        #    # Safe Eyes was paused earlier and next break is long
+        #    paused_duration = int(current_timestamp - self.paused_time)
+        #    self.paused_time = -1
+        #    if paused_duration > self.breaks[self.next_break_index].time:
+        #        logging.info('Skip next long break due to the pause longer than break duration')
+        #        # Skip the next long break
+        #        self.__select_next_break()
+
         if current_timestamp < self.scheduled_next_break_time:
             time_to_wait = round(self.scheduled_next_break_time - current_timestamp)
             self.scheduled_next_break_time = -1
